@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tourism Chatbot - Trợ lý Du lịch AI</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head> 
+
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Online</span>
+            </div>
+            <h1><i class="fas fa-robot"></i> Tourism Chatbot</h1>
+            <p>Trợ lý du lịch thông minh - Intelligent Tourism Assistant</p>
+            <div class="language-switch">
+                <button class="language-btn active" data-lang="vi">VI</button>
+                <button class="language-btn" data-lang="en">EN</button>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    Xin chào! Tôi là trợ lý du lịch ảo. Tôi có thể giúp bạn tìm hiểu về các điểm đến du lịch, địa điểm tham quan, nhà hàng và khách sạn. Bạn muốn đi du lịch ở đâu?
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="quick-actions" id="quickActions">
+            <button class="quick-btn" data-intent="destinations">🏖️ Điểm đến</button>
+            <button class="quick-btn" data-intent="restaurants">🍽️ Nhà hàng</button>
+            <button class="quick-btn" data-intent="hotels">🏨 Khách sạn</button>
+            <button class="quick-btn" data-intent="attractions">🏖️ Tham quan</button>
+            <button class="quick-btn" data-intent="english">🌐 English</button>
+        </div>
+
+
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <input type="text" 
+                       class="chat-input" 
+                       id="chatInput" 
+                       placeholder="Nhập câu hỏi của bạn..." 
+                       maxlength="500">
+                <button class="send-btn" id="sendBtn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
