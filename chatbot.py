@@ -172,7 +172,7 @@ class TourismChatbot:
         filtered_words = [w for w in words if w not in stop_words and len(w) > 1]
 
         if filtered_words:
-            return ' '.join(filtered_words).strip().title()  # "hạ long" -> "Hạ Long"
+            return ' '.join(filtered_words).strip().title()
         return None
     
     def match_pattern(self, text, language):
@@ -198,40 +198,45 @@ class TourismChatbot:
         
         response += f"Bạn muốn tìm hiểu chi tiết về điểm đến nào?" if language == 'vi' else "Which destination would you like to know more about?"
         return response
-    
-    def format_attractions(self, attractions, destination_name, language):
+
+    def format_attractions(self, attractions, destination_name, language="vi"):
         """Định dạng thông tin điểm tham quan"""
         if not attractions:
-            return f"Không tìm thấy thông tin về điểm tham quan tại {destination_name}." if language == 'vi' else f"No attraction information found for {destination_name}."
-        
-        response = f"{self.responses[language]['attractions_intro']} {destination_name}:\n\n"
-        
-        for i, attraction in enumerate(attractions, 1):
-            response += f"{i}. **{attraction['name']}**\n"
-            response += f"   📍 Địa chỉ: {attraction['address']}\n" if language == 'vi' else f"   📍 Address: {attraction['address']}\n"
-            response += f"   ℹ️ {attraction['description']}\n"
-            response += f"   🎫 Giá vé: {attraction['ticket_price']}\n" if language == 'vi' else f"   🎫 Ticket: {attraction['ticket_price']}\n"
-            response += f"   ⏰ Giờ mở cửa: {attraction['opening_hours']}\n\n" if language == 'vi' else f"   ⏰ Hours: {attraction['opening_hours']}\n\n"
-        
-        return response
-    
-    # def format_restaurants(self, restaurants, destination_name, language):
-        """Định dạng thông tin nhà hàng"""
-        if not restaurants:
-            return f"Không tìm thấy thông tin về nhà hàng tại {destination_name}." if language == 'vi' else f"No restaurant information found for {destination_name}."
-        
-        response = f"{self.responses[language]['restaurants_intro']} {destination_name}:\n\n"
-        
-        for i, restaurant in enumerate(restaurants, 1):
-            response += f"{i}. **{restaurant['name']}**\n"
-            response += f"   📍 Địa chỉ: {restaurant['address']}\n" if language == 'vi' else f"   📍 Address: {restaurant['address']}\n"
-            response += f"   🍽️ Loại cuisine: {restaurant['cuisine_type']}\n" if language == 'vi' else f"   🍽️ Cuisine: {restaurant['cuisine_type']}\n"
-            response += f"   💰 Giá: {restaurant['price_range']}\n" if language == 'vi' else f"   💰 Price: {restaurant['price_range']}\n"
-            response += f"   ⭐ Đặc sản: {restaurant['specialties']}\n\n" if language == 'vi' else f"   ⭐ Specialties: {restaurant['specialties']}\n\n"
-        
-        return response
-    
+            return "Xin lỗi, tôi chưa có thông tin về điểm tham quan ở đây 😔." if language == "vi" else "Sorry, I don't have attraction information for this place yet."
+
+        if language == "vi":
+            intro_templates = [
+                f"🏞️ Nếu bạn đến {destination_name}, đừng bỏ lỡ những điểm tham quan nổi bật sau:",
+                f"Ở {destination_name}, có rất nhiều điểm tham quan thú vị, bạn có thể tham khảo những gợi ý dưới đây:",
+                f"Bạn đang tìm các địa điểm tham quan ở {destination_name}? Dưới đây là những nơi bạn không thể bỏ qua:"
+            ]
+        else:
+            intro_templates = [
+                f"🏞️ If you're visiting {destination_name}, don’t miss these popular attractions:",
+                f"There are many great attractions in {destination_name}, here are some top picks:",
+                f"Looking for things to do in {destination_name}? Here are some must-see spots:"
+            ]
+
+        response = random.choice(intro_templates) + "\n\n"
+
+        for a in attractions:
+            if language == "vi":
+                response += f"• **{a['name']}**\n"
+                response += f"   📍 Địa chỉ: {a['address']}\n"
+                response += f"   ℹ️ {a['description']}\n"
+                response += f"   🎫 Giá vé: {a['ticket_price']}\n"
+                response += f"   ⏰ Giờ mở cửa: {a['opening_hours']}\n\n"
+            else:
+                response += f"• **{a['name']}**\n"
+                response += f"   📍 Address: {a['address']}\n"
+                response += f"   ℹ️ {a['description']}\n"
+                response += f"   🎫 Ticket: {a['ticket_price']}\n"
+                response += f"   ⏰ Hours: {a['opening_hours']}\n\n"
+
+        return response.strip()
+
     def format_restaurants(self, restaurants, destination_name, language="vi"):
+        """Định dạng thông tin nhà hàng"""
         if not restaurants:
             return "Xin lỗi, tôi chưa có thông tin về nhà hàng ở đây 😔." if language == "vi" else "Sorry, I don't have restaurant information for this place yet."
 
@@ -252,28 +257,50 @@ class TourismChatbot:
 
         for r in restaurants:
             if language == "vi":
-                response += f"• {r['name']} ({r['cuisine_type']}, {r['price_range']})\n   👉 Đặc sản: {r['specialties']}\n\n"
+                response += f"• **{r['name']}** ({r['cuisine_type']}, {r['price_range']})\n"
+                response += f"   📍 Địa chỉ: {r['address']}\n"
+                response += f"   👉 Đặc sản: {r['specialties']}\n\n"
             else:
-                response += f"• {r['name']} ({r['cuisine_type']}, {r['price_range']})\n   👉 Specialties: {r['specialties']}\n\n"
+                response += f"• **{r['name']}** ({r['cuisine_type']}, {r['price_range']})\n"
+                response += f"   📍 Address: {r['address']}\n"
+                response += f"   👉 Specialties: {r['specialties']}\n\n"
 
         return response.strip()
 
-
-    def format_hotels(self, hotels, destination_name, language):
+    def format_hotels(self, hotels, destination_name, language="vi"):
         """Định dạng thông tin khách sạn"""
         if not hotels:
-            return f"Không tìm thấy thông tin về khách sạn tại {destination_name}." if language == 'vi' else f"No hotel information found for {destination_name}."
-        
-        response = f"{self.responses[language]['hotels_intro']} {destination_name}:\n\n"
-        
-        for i, hotel in enumerate(hotels, 1):
-            response += f"{i}. **{hotel['name']}**\n"
-            response += f"   📍 Địa chỉ: {hotel['address']}\n" if language == 'vi' else f"   📍 Address: {hotel['address']}\n"
-            response += f"   ⭐ Hạng: {hotel['star_rating']} sao\n" if language == 'vi' else f"   ⭐ Rating: {hotel['star_rating']} stars\n"
-            response += f"   💰 Giá: {hotel['price_range']}\n" if language == 'vi' else f"   💰 Price: {hotel['price_range']}\n"
-            response += f"   🏨 Tiện ích: {hotel['amenities']}\n\n" if language == 'vi' else f"   🏨 Amenities: {hotel['amenities']}\n\n"
-        
-        return response
+            return "Xin lỗi, tôi chưa có thông tin về khách sạn ở đây 😔." if language == "vi" else "Sorry, I don't have hotel information for this place yet."
+
+        if language == "vi":
+            intro_templates = [
+                f"🏨 Nếu bạn đang tìm khách sạn tại {destination_name}, đây là những nơi bạn không nên bỏ qua:",
+                f"Ở {destination_name} có rất nhiều khách sạn tuyệt vời, đây là một số gợi ý cho bạn:",
+                f"Bạn đang muốn nghỉ ngơi tại {destination_name}? Dưới đây là một số khách sạn nổi bật:"
+            ]
+        else:
+            intro_templates = [
+                f"🏨 If you're looking for a hotel in {destination_name}, here are some top picks:",
+                f"There are many great hotels in {destination_name}, check out these suggestions:",
+                f"Looking for a place to stay in {destination_name}? Here are some popular hotels:"
+            ]
+
+        # Mở đầu câu trả lời
+        response = random.choice(intro_templates) + "\n\n"
+
+        for h in hotels:
+            if language == "vi":
+                response += f"• **{h['name']}** ({h['star_rating']} sao)\n"
+                response += f"   📍 Địa chỉ: {h['address']}\n"
+                response += f"   💰 Giá: {h['price_range']}\n"
+                response += f"   🏨 Tiện ích: {h['amenities']}\n\n"
+            else:
+                response += f"• **{h['name']}** ({h['star_rating']} stars)\n"
+                response += f"   📍 Address: {h['address']}\n"
+                response += f"   💰 Price: {h['price_range']}\n"
+                response += f"   🏨 Amenities: {h['amenities']}\n\n"
+
+        return response.strip()
     
     def process_message(self, message):
         """Xử lý tin nhắn từ người dùng"""
