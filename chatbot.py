@@ -15,6 +15,11 @@ class TourismChatbot:
         # Định nghĩa các pattern và từ khóa
         self.patterns = {
             'vi': {
+                'trip_cost_request': [
+                    r'chi phí (?:cho )?(?:chuyến )?(?:đi du lịch|du lịch|đi) (.*?) (?:cho )?(\d+) người (?:trong|cho) (\d+) ngày',
+                    r'giá (?:cho )?(?:chuyến )?(?:đi du lịch|du lịch|đi) (.*?) (?:cho )?(\d+) người (?:trong|cho) (\d+) ngày',
+                    r'ước tính chi phí (.*?) (?:cho )?(\d+) người (?:trong|cho) (\d+) ngày'
+                ],
                 'greeting': [
                     r'(xin chào|chào|hello|hi)',
                     r'(bạn|em) có thể (giúp|hỗ trợ)',
@@ -103,6 +108,11 @@ class TourismChatbot:
                     r'(price|cost|how much) (.*)',
                     r'(.*) (price|cost)',
                     r'budget for (.*)'
+                ],
+                'trip_cost_request': [
+                    r'cost to (travel|visit) (.*)? for (\d+) people in (\d+) days',
+                    r'price to (travel|visit) (.*)? for (\d+) people in (\d+) days',
+                    r'estimate cost for (.*)? for (\d+) people in (\d+) days'
                 ],
                 'language_switch': [
                     r'(vietnamese|tiếng việt)',
@@ -420,6 +430,69 @@ class TourismChatbot:
                 
                 return "Hiện tôi chưa được cập nhật địa điểm này." if detected_lang == 'vi' else "This destination has not been updated yet."
             
+            # ==== Trip Cost ====
+            elif intent == "trip_cost_request":
+                def format_price(min_p, max_p):
+                    if min_p == max_p:
+                        if min_p == 0:
+                            return "Miễn phí"
+                        return f"{min_p:,} VNĐ"
+                    return f"{min_p:,} - {max_p:,} VNĐ"
+
+                match = re.search(
+                    r'(?:chi phí|giá|ước tính chi phí)(?: cho)?(?: chuyến)? (?:đi du lịch|du lịch|đi) (.*?)(?= (?:cho|trong) \d+ người)',
+                    message, re.IGNORECASE
+                )
+                if match:
+                    dest_name = match.group(1).strip()
+                    dest_name = re.sub(r'\b(cho|trong)\b.*', '', dest_name, flags=re.IGNORECASE).strip()
+
+                    m2 = re.search(r'(\d+) người.*?(\d+) ngày', message)
+                    if m2:
+                        people, days = int(m2.group(1)), int(m2.group(2))
+
+                        dest_id = self.db.search_by_name(dest_name, detected_lang)
+                        if dest_id:
+                            costs = self.db.estimate_trip_cost(dest_id, days, people, detected_lang)
+                            if costs:
+                                response = f"Chi phí dự kiến cho chuyến đi {dest_name} {people} người {days} ngày:\n\n"
+
+                                # 🚗 Phương tiện
+                                response += "1. 🚗 Phương tiện:\n"
+                                for t in costs["transports"]:
+                                    response += f"   - {t['name']}: {format_price(*t['range'])} / người\n"
+
+                                # 🏨 Khách sạn
+                                response += "2. 🏨 Khách sạn (giá 1 đêm):\n"
+                                for h in costs["hotels"]:
+                                    response += f"   - {h['name']}: {format_price(*h['range'])} / đêm\n"
+                                response += f"   👉 Chi phí trung bình cho {days} đêm: {format_price(*costs['hotel_cost'])}\n"
+
+                                # 🍽️ Ăn uống
+                                response += "3. 🍽️ Ăn uống (giá 1 bữa/người):\n"
+                                for r in costs["restaurants"]:
+                                    response += f"   - {r['name']}: {format_price(*r['range'])} / bữa\n"
+                                response += f"   👉 Tổng chi phí ăn uống ({days} ngày, {people} người, 2 bữa/ngày): {format_price(*costs['food_cost'])}\n"
+
+                                # 🎡 Tham quan
+                                response += "4. 🎡 Tham quan:\n"
+                                for a in costs["attractions"]:
+                                    response += f"   - {a['name']}: {format_price(*a['range'])}\n"
+                                response += f"   👉 Tổng chi phí vé tham quan: {format_price(*costs['attraction_cost'])}\n"
+
+                                # 💰 Phát sinh
+                                response += f"5. 💰 Chi phí phát sinh: {format_price(*costs['extra'])}\n\n"
+
+                                # Tổng
+                                response += f"=> Tổng chi phí ước tính: **{format_price(*costs['total'])}**"
+
+                                return response
+
+                return ("Xin lỗi, tôi chưa tìm thấy thông tin chi phí cho điểm đến này."
+                        if detected_lang == 'vi'
+                        else "Sorry, I couldn't find cost information for this destination.")
+
+
             # ==== Fallback ====
             else:
                 return self.responses[detected_lang]['help']

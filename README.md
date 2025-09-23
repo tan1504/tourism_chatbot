@@ -32,7 +32,7 @@ python app.py
 
 ```
 User: "I want to visit Ha Long"
-Bot: Shows Ha Long Bay info with attractions, restaurants, hotels
+Bot: Shows Ha Long Bay info with attractions, restaurants, hotels, transportation.
 
 User: "Nhà hàng ở Đà Lạt"  
 Bot: Lists recommended restaurants in Da Lat with details
@@ -46,8 +46,13 @@ tourism_chatbot/
 ├── chatbot.py          # Rule-based chat logic
 ├── database.py         # SQL Server integration
 ├── TourismDB.sql       # Database schema + data
-└── templates/
-    └── index.html      # Chat interface
+├── templates/
+│   └── index.html      # Chat interface
+└── static/
+    ├── css/
+    │   └── style.css   # Styles for the web interface
+    └── js/
+        └── script.js   # JavaScript for chat interactions
 ```
 
 ## 🔌 API Endpoints
@@ -66,7 +71,7 @@ tourism_chatbot/
 
 ## 📊 Database
 
-5 destinations (Ha Long, Da Lat, Vung Tau, Phu Quoc, Sapa) with 20+ attractions, 15+ restaurants, 10+ hotels.
+10+ destinations (Ha Long, Da Lat, Vung Tau, Phu Quoc, Sapa,...) with 50+ attractions, 50+ restaurants, 50+ hotels.
 
 ## 🤝 Contributing
 
