@@ -7,13 +7,8 @@ A rule-based mini chatbot for tourism assistance, providing users with help in t
 - 🌐 Hỗ trợ song ngữ Việt - Anh (tự động nhận diện ngôn ngữ)
 - 🤖 Tích hợp Google Gemini AI để tạo câu trả lời tự nhiên
 - 🗄️ Kết nối SQL Server để lưu trữ và truy xuất dữ liệu
-- 🔍 Tìm kiếm thông minh theo 4 chủ đề:
-  - Điểm đến du lịch (Destinations)
-  - Văn hóa truyền thống (Culture)
-  - Ẩm thực đặc sản (Cuisine)
-  - Hoạt động trải nghiệm (Activities)
+- 🔍 Tìm kiếm thông minh theo chủ đề
 - 💬 Giao diện web đơn giản, thân thiện
-- ⚡ Phản hồi nhanh với gợi ý câu hỏi
 
 ## 🛠️ Công nghệ sử dụng
 
@@ -110,30 +105,6 @@ tourism_chatbot/
     └── js/
         └── script.js   # JavaScript for chat interactions
 ```
-
-## 🎯 Cách sử dụng
-
-### Ví dụ câu hỏi:
-
-**Về điểm đến:**
-- "Hãy giới thiệu về Vịnh Hạ Long"
-- "Điểm du lịch nổi tiếng ở Việt Nam"
-- "Nên đi Sapa vào thời gian nào?"
-
-**Về văn hóa:**
-- "Tết Nguyên Đán có gì đặc biệt?"
-- "Múa rối nước là gì?"
-- "Lễ hội truyền thống Việt Nam"
-
-**Về ẩm thực:**
-- "Phở có những loại nào?"
-- "Món ăn đặc sản miền Bắc"
-- "Bánh mì Việt Nam giá bao nhiêu?"
-
-**Về hoạt động:**
-- "Có những hoạt động gì ở Hạ Long?"
-- "Trekking ở Sapa như thế nào?"
-- "Hoạt động thú vị ở Hội An"
 
 ## 🔧 API Endpoints
 
