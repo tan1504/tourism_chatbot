@@ -1,217 +1,164 @@
-class TourismChatbot {
-    constructor() {
-        this.chatMessages = document.getElementById('chatMessages');
-        this.chatInput = document.getElementById('chatInput');
-        this.sendBtn = document.getElementById('sendBtn');
-        this.typingIndicator = document.getElementById('typingIndicator');
-        this.quickActions = document.getElementById('quickActions');
-        this.currentLanguage = 'vi';
-        
-        this.initializeEventListeners();
-        this.updateQuickActions();
-    }
+let isTyping = false;
 
-    initializeEventListeners() {
-        // Send button click
-        this.sendBtn.addEventListener('click', () => this.sendMessage());
-        
-        // Enter key press
-        this.chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendMessage();
-            }
-        });
-
-        // Language switch
-        document.querySelectorAll('.language-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.switchLanguage(e.target.dataset.lang);
-            });
-        });
-
-        // Quick actions
-        this.quickActions.addEventListener('click', (e) => {
-            if (e.target.classList.contains('quick-btn')) {
-                const message = e.target.dataset.message;
-                this.chatInput.value = message;
-                this.sendMessage();
-            }
-        });
-
-        // Auto-resize input
-        this.chatInput.addEventListener('input', () => {
-            this.sendBtn.disabled = !this.chatInput.value.trim();
-        });
-    }
-
-    switchLanguage(lang) {
-        this.currentLanguage = lang;
-        
-        // Update active button
-        document.querySelectorAll('.language-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.lang === lang);
-        });
-
-        // Update placeholders and texts
-        if (lang === 'en') {
-            this.chatInput.placeholder = 'Type your question...';
-        } else {
-            this.chatInput.placeholder = 'Nhập câu hỏi của bạn...';
-        }
-
-        this.updateQuickActions();
-    }
-
-    updateQuickActions(destinationName = null) {
-        const actions = [
-            { intent: 'destinations', text: this.currentLanguage === 'vi' ? '🏖️ Điểm đến' : '🏖️ Destinations' },
-            { intent: 'restaurants', text: this.currentLanguage === 'vi' ? '🍽️ Nhà hàng' : '🍽️ Restaurants' },
-            { intent: 'hotels', text: this.currentLanguage === 'vi' ? '🏨 Khách sạn' : '🏨 Hotels' },
-            { intent: 'attractions', text: this.currentLanguage === 'vi' ? '🏖️ Tham quan' : '🏖️ Attractions' },
-            { intent: 'english', text: this.currentLanguage === 'vi' ? '🌐 English' : '🌐 Vietnamese' }
-        ];
-
-        this.quickActions.innerHTML = actions.map(action => {
-            let msg = "";
-            if (destinationName) {
-                if (action.intent === "destinations") {
-                    msg = this.currentLanguage === 'vi' ? "Gợi ý điểm đến du lịch" : "Suggest tourist destinations";
-                } else if (action.intent === "restaurants") {
-                    msg = this.currentLanguage === 'vi' ? `Nhà hàng ở ${destinationName}` : `Restaurants in ${destinationName}`;
-                } else if (action.intent === "hotels") {
-                    msg = this.currentLanguage === 'vi' ? `Khách sạn ở ${destinationName}` : `Hotels in ${destinationName}`;
-                } else if (action.intent === "attractions") {
-                    msg = this.currentLanguage === 'vi' ? `Điểm tham quan ở ${destinationName}` : `Attractions in ${destinationName}`;
-                } else if (action.intent === "english") {
-                    msg = this.currentLanguage === 'vi' ? "English" : "Vietnamese";
-                }
-            } else {
-                // generic khi chưa có context
-                if (action.intent === "restaurants") msg = this.currentLanguage === 'vi' ? "Nhà hàng" : "Restaurants";
-                else if (action.intent === "hotels") msg = this.currentLanguage === 'vi' ? "Khách sạn" : "Hotels";
-                else if (action.intent === "attractions") msg = this.currentLanguage === 'vi' ? "Điểm tham quan" : "Attractions";
-                else if (action.intent === "destinations") msg = this.currentLanguage === 'vi' ? "Gợi ý điểm đến du lịch" : "Suggest tourist destinations";
-                else if (action.intent === "english") msg = this.currentLanguage === 'vi' ? "English" : "Vietnamese";
-            }
-
-            return `<button class="quick-btn" data-intent="${action.intent}" data-message="${msg}">${action.text}</button>`;
-        }).join('');
-    }
-
-    async sendMessage() {
-        const message = this.chatInput.value.trim();
-        if (!message) return;
-
-        // Add user message
-        this.addMessage(message, 'user');
-        this.chatInput.value = '';
-        this.sendBtn.disabled = true;
-
-        // Show typing indicator
-        this.showTyping();
-
-        try {
-            // Send to backend
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    message: message,
-                    language: this.currentLanguage 
-                })
-            });
-
-            const data = await response.json();
-            
-            if (response.ok) {
-                // Update language if changed
-                if (data.language !== this.currentLanguage) {
-                    this.switchLanguage(data.language);
-                }
-
-                this.addMessage(data.response, 'bot');
-
-                // ✅ Cập nhật quick actions theo current_destination
-                if (data.current_destination) {
-                    const destRes = await fetch(`/api/destination/${data.current_destination}?lang=${data.language}`);
-                    const destDetails = await destRes.json();
-                    if (destDetails && destDetails.destination) {
-                        this.updateQuickActions(destDetails.destination.name);
-                    }
-                } else {
-                    // chưa chọn địa điểm nào → generic
-                    this.updateQuickActions();
-                }
-
-            } else {
-                this.addMessage(
-                    data.error || 'Có lỗi xảy ra. Vui lòng thử lại.',
-                    'bot',
-                    true
-                );
-            }
-
-        } catch (error) {
-            console.error('Error:', error);
-            this.addMessage(
-                this.currentLanguage === 'vi' ? 
-                'Không thể kết nối đến server. Vui lòng thử lại.' :
-                'Cannot connect to server. Please try again.',
-                'bot',
-                true
-            );
-        } finally {
-            this.hideTyping();
-            this.sendBtn.disabled = false;
-        }
-    }
-
-    addMessage(content, sender, isError = false) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${sender}`;
-        
-        const avatarDiv = document.createElement('div');
-        avatarDiv.className = 'message-avatar';
-        avatarDiv.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
-        
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'message-content';
-        if (isError) {
-            contentDiv.classList.add('error-message');
-        }
-        
-        // Format content with basic markdown support
-        let formattedContent = content
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
-        
-        contentDiv.innerHTML = formattedContent;
-        
-        messageDiv.appendChild(avatarDiv);
-        messageDiv.appendChild(contentDiv);
-        
-        this.chatMessages.appendChild(messageDiv);
-        this.scrollToBottom();
-    }
-
-    showTyping() {
-        this.typingIndicator.style.display = 'flex';
-        this.scrollToBottom();
-    }
-
-    hideTyping() {
-        this.typingIndicator.style.display = 'none';
-    }
-
-    scrollToBottom() {
-        setTimeout(() => {
-            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        }, 100);
+function handleKeyPress(event) {
+    if (event.key === 'Enter' && !isTyping) {
+        sendMessage();
     }
 }
 
-// Initialize chatbot when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    new TourismChatbot();
+function sendExample(message) {
+    document.getElementById('messageInput').value = message;
+    sendMessage();
+}
+
+function addMessage(content, isUser = false) {
+    const messagesContainer = document.getElementById('messages');
+    const welcomeMessage = messagesContainer.querySelector('.welcome-message');
+    
+    if (welcomeMessage) {
+        welcomeMessage.remove();
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.textContent = content;
+    
+    messageDiv.appendChild(contentDiv);
+    messagesContainer.appendChild(messageDiv);
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function showTypingIndicator() {
+    document.getElementById('typingIndicator').style.display = 'block';
+    const messagesContainer = document.getElementById('messages');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function hideTypingIndicator() {
+    document.getElementById('typingIndicator').style.display = 'none';
+}
+
+function showStatus(message, isError = false) {
+    const statusDiv = document.getElementById('status');
+    statusDiv.textContent = message;
+    statusDiv.className = `status ${isError ? 'error' : ''}`;
+    statusDiv.style.display = 'block';
+    
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+    }, 3000);
+}
+
+//  Load chat history from server
+function loadHistory() {
+    fetch('/api/chat_history')
+        .then(res => res.json())
+        .then(data => {
+            let historyDiv = document.getElementById("chat-history");
+            historyDiv.innerHTML = "";
+            data.forEach(chat => {
+                historyDiv.innerHTML += `
+                    <div class="chat-item">
+                        <b>👤 User:</b> ${chat.user_message}<br>
+                        <b>🤖 Bot:</b> ${chat.bot_response}<br>
+                        <small>${chat.created_at}</small>
+                        <hr>
+                    </div>
+                `;
+            });
+        });
+}
+
+// Clear chat history on server
+function clearHistory() {
+    fetch('/api/chat_history', { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            document.getElementById("chat-history").innerHTML = "";
+        });
+}
+
+async function sendMessage() {
+    if (isTyping) return;
+
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const message = messageInput.value.trim();
+
+    if (!message) return;
+
+    // Disable input
+    isTyping = true;
+    sendButton.disabled = true;
+    sendButton.textContent = 'Đang gửi...';
+
+    // Add user message
+    addMessage(message, true);
+    messageInput.value = '';
+
+    // Show typing indicator
+    showTypingIndicator();
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message })
+        });
+
+        const data = await response.json();
+        
+        hideTypingIndicator();
+
+        if (data.success) {
+            addMessage(data.message);
+            if (data.results_count > 0) {
+                showStatus(`Đã tìm thấy ${data.results_count} kết quả liên quan`);
+            }
+        } else {
+            addMessage(data.message || 'Đã xảy ra lỗi, vui lòng thử lại.');
+            showStatus('Có lỗi xảy ra khi xử lý yêu cầu', true);
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        hideTypingIndicator();
+        addMessage('Xin lỗi, tôi không thể kết nối đến server. Vui lòng thử lại sau.');
+        showStatus('Lỗi kết nối mạng', true);
+    }
+
+    // Enable input
+    isTyping = false;
+    sendButton.disabled = false;
+    sendButton.textContent = 'Gửi';
+    messageInput.focus();
+}
+
+// Check system health on load
+async function checkHealth() {
+    try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        if (data.success) {
+            showStatus('Hệ thống đã sẵn sàng');
+        } else {
+            showStatus('Hệ thống gặp sự cố', true);
+        }
+    } catch (error) {
+        showStatus('Không thể kết nối đến server', true);
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    checkHealth();
+    document.getElementById('messageInput').focus();
 });

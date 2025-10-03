@@ -4,70 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="{{ url_for('static', filename='images/icon.png') }}" type="image/x-icon">
-    <title>Tourism Chatbot - Trợ lý Du lịch AI</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Tourism Chatbot - Trợ lý Du lịch Việt Nam</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head> 
-
+    
+</head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span>Online</span>
-            </div>
-            <h1><i class="fas fa-robot"></i> Tourism Chatbot</h1>
-            <p>Trợ lý du lịch thông minh - Intelligent Tourism Assistant</p>
-            <div class="language-switch">
-                <button class="language-btn active" data-lang="vi">VI</button>
-                <button class="language-btn" data-lang="en">EN</button>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1>🏖️ Tourism Chatbot</h1>
+            <p>Trợ lý du lịch thông minh cho Việt Nam</p>
         </div>
 
-        <div class="chat-messages" id="chatMessages">
-            <div class="message bot">
-                <div class="message-avatar">
-                    <i class="fas fa-robot"></i>
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                <div class="welcome-message">
+                    <h3>Chào mừng bạn đến với Tourism Chatbot! 🇻🇳</h3>
+                    <p>Tôi có thể giúp bạn tìm hiểu về các điểm du lịch, văn hóa và ẩm thực Việt Nam</p>
+                    
+                    <div class="welcome-examples">
+                        <div class="example-card" onclick="sendExample('Hãy giới thiệu về Vịnh Hạ Long')">
+                            <h4>🏝️ Điểm du lịch</h4>
+                            <p>Hỏi về các địa danh nổi tiếng</p>
+                        </div>
+                        <div class="example-card" onclick="sendExample('Tết Nguyên Đán có gì đặc biệt?')">
+                            <h4>🎭 Văn hóa</h4>
+                            <p>Tìm hiểu lễ hội, truyền thống</p>
+                        </div>
+                        <div class="example-card" onclick="sendExample('Phở có những loại nào?')">
+                            <h4>🍜 Ẩm thực</h4>
+                            <p>Khám phá món ăn đặc sản</p>
+                        </div>
+                        <div class="example-card" onclick="sendExample('Có những hoạt động gì ở Sapa?')">
+                            <h4>🎯 Hoạt động</h4>
+                            <p>Trải nghiệm du lịch thú vị</p>
+                        </div>
+                        <div class="example-card" onclick="sendExample('Khách sạn có view đẹp ở Hạ Long?')">
+                            <h4>🏨 Khách sạn</h4>
+                            <p>Tìm kiếm chỗ ở tiện nghi</p>
+                        </div>
+                        <div class="example-card" onclick="sendExample('Nhà hàng nổi tiếng ở Hà Nội?')">
+                            <h4>🍽️ Nhà hàng</h4>
+                            <p>Thưởng thức những món ăn ngon</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="message-content">
-                    Xin chào! Tôi là trợ lý du lịch ảo. Tôi có thể giúp bạn tìm hiểu về các điểm đến du lịch, địa điểm tham quan, nhà hàng và khách sạn. Bạn muốn đi du lịch ở đâu?
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="message bot">
+                    <div class="message-content">
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        Đang soạn câu trả lời...
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="typing-indicator" id="typingIndicator">
-            <div class="message-avatar">
-                <i class="fas fa-robot"></i>
-            </div>
-            <div class="typing-dots">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
+            <div class="suggestions">
+                <div class="suggestion-btn" onclick="sendExample('Điểm du lịch nổi tiếng ở Việt Nam')">Điểm du lịch</div>
+                <div class="suggestion-btn" onclick="sendExample('Món ăn đặc sản miền Nam')">Ẩm thực</div>
+                <div class="suggestion-btn" onclick="sendExample('Lễ hội truyền thống ở Việt Nam')">Văn hóa</div>
+                <div class="suggestion-btn" onclick="sendExample('Hoạt động thú vị ở Hạ Long')">Hoạt động</div>
             </div>
         </div>
 
-        <div class="quick-actions" id="quickActions">
-            <button class="quick-btn" data-intent="destinations">🏖️ Điểm đến</button>
-            <button class="quick-btn" data-intent="restaurants">🍽️ Nhà hàng</button>
-            <button class="quick-btn" data-intent="hotels">🏨 Khách sạn</button>
-            <button class="quick-btn" data-intent="attractions">🏖️ Tham quan</button>
-            <button class="quick-btn" data-intent="english">🌐 English</button>
+        <div class="input-container">
+            <input type="text" id="messageInput" class="message-input" 
+                   placeholder="Hỏi tôi về du lịch, văn hóa, ẩm thực Việt Nam..." 
+                   onkeypress="handleKeyPress(event)">
+            <button id="sendButton" class="send-button" onclick="sendMessage()">Gửi</button>
         </div>
 
-
-        <div class="chat-input-container">
-            <div class="chat-input-wrapper">
-                <input type="text" 
-                       class="chat-input" 
-                       id="chatInput" 
-                       placeholder="Nhập câu hỏi của bạn..." 
-                       maxlength="500">
-                <button class="send-btn" id="sendBtn">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
+        <div class="status" id="status" style="display: none;"></div>
     </div>
+
+    
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>

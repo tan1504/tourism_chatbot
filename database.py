@@ -1,406 +1,209 @@
 import pyodbc
 import json
-import random
-import re
+from typing import List, Dict, Any
 
-class TourismDatabase:
-    def __init__(self):
-        # Cấu hình kết nối SQL Server (thay đổi theo môi trường của bạn)
-        self.connection_string = """
-        DRIVER={ODBC Driver 17 for SQL Server};
-        SERVER=localhost;
-        DATABASE=TourismDB;
-        UID=sa;
-        PWD=123;
-        Trusted_Connection=yes;
-        """
+class DatabaseManager:
+    def __init__(self, server, database, username=None, password=None, trusted_connection=True):
+        self.server = server
+        self.database = database
+        self.username = username
+        self.password = password
+        self.trusted_connection = trusted_connection
         
     def get_connection(self):
-        """Tạo kết nối đến database"""
-        try:
-            return pyodbc.connect(self.connection_string)
-        except Exception as e:
-            print(f"Lỗi kết nối database: {e}")
-            return None
+        """Tạo kết nối đến SQL Server"""
+        if self.trusted_connection:
+            connection_string = f"""
+            DRIVER={{ODBC Driver 17 for SQL Server}};
+            SERVER={self.server};
+            DATABASE={self.database};
+            Trusted_Connection=yes;
+            """
+        else:
+            connection_string = f"""
+            DRIVER={{ODBC Driver 17 for SQL Server}};
+            SERVER={self.server};
+            DATABASE={self.database};
+            UID={self.username};
+            PWD={self.password};
+            """
+        
+        return pyodbc.connect(connection_string)
     
-    def search_destinations(self, keyword="", language="vi"):
+    def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
+        """Thực thi query và trả về kết quả"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            
+            # Lấy tên cột
+            columns = [column[0] for column in cursor.description]
+            
+            # Lấy dữ liệu và chuyển thành dictionary
+            rows = cursor.fetchall()
+            result = []
+            for row in rows:
+                result.append(dict(zip(columns, row)))
+            
+            conn.close()
+            return result
+            
+        except Exception as e:
+            print(f"Database error: {e}")
+            return []
+    
+    def search_destinations(self, keyword: str, language: str = 'vi') -> List[Dict[str, Any]]:
         """Tìm kiếm điểm đến"""
-        conn = self.get_connection()
-        if not conn:
-            return []
-            
-        try:
-            cursor = conn.cursor()
-            cursor.execute("EXEC sp_SearchDestination ?, ?", (keyword, language))
-            
-            results = []
-            for row in cursor.fetchall():
-                results.append({
-                    'id': row[0],
-                    'name': row[1],
-                    'description': row[2],
-                    'region': row[3]
-                })
-            return results
-            
-        except Exception as e:
-            print(f"Lỗi tìm kiếm: {e}")
-            return []
-        finally:
-            conn.close()
+        if language == 'vi':
+            query = """
+            SELECT * FROM Destinations 
+            WHERE name_vi LIKE ? OR description_vi LIKE ? OR location LIKE ? OR category LIKE ?
+            ORDER BY rating DESC
+            """
+        else:
+            query = """
+            SELECT * FROM Destinations 
+            WHERE name_en LIKE ? OR description_en LIKE ? OR location LIKE ? OR category LIKE ?
+            ORDER BY rating DESC
+            """
+        
+        search_term = f"%{keyword}%"
+        return self.execute_query(query, (search_term, search_term, search_term, search_term))
     
-    def get_restaurants(self, destination_id, language="vi"):
-        """Lấy danh sách nhà hàng"""
-        conn = self.get_connection()
-        if not conn:
-            return []
-            
-        try:
-            cursor = conn.cursor()
-            if language == 'en':
-                query = """
-                SELECT name_en as name, address, cuisine_type, price_range, 
-                       specialties_en as specialties 
-                FROM Restaurants WHERE destination_id = ?
-                """
-            else:
-                query = """
-                SELECT name, address, cuisine_type, price_range, specialties 
-                FROM Restaurants WHERE destination_id = ?
-                """
-                
-            cursor.execute(query, (destination_id,))
-            
-            results = []
-            for row in cursor.fetchall():
-                results.append({
-                    'name': row[0],
-                    'address': row[1],
-                    'cuisine_type': row[2],
-                    'price_range': row[3],
-                    'specialties': row[4]
-                })
-            return results
-            
-        except Exception as e:
-            print(f"Lỗi lấy nhà hàng: {e}")
-            return []
-        finally:
-            conn.close()
+    def search_culture(self, keyword: str, language: str = 'vi') -> List[Dict[str, Any]]:
+        """Tìm kiếm văn hóa"""
+        if language == 'vi':
+            query = """
+            SELECT * FROM Culture 
+            WHERE name_vi LIKE ? OR description_vi LIKE ? OR type LIKE ? OR location LIKE ?
+            """
+        else:
+            query = """
+            SELECT * FROM Culture 
+            WHERE name_en LIKE ? OR description_en LIKE ? OR type LIKE ? OR location LIKE ?
+            """
+        
+        search_term = f"%{keyword}%"
+        return self.execute_query(query, (search_term, search_term, search_term, search_term))
     
-    def get_hotels(self, destination_id, language="vi"):
-        """Lấy danh sách khách sạn"""
-        conn = self.get_connection()
-        if not conn:
-            return []
-            
-        try:
-            cursor = conn.cursor()
-            if language == 'en':
-                query = """
-                SELECT name_en as name, address, star_rating, price_range, 
-                       amenities_en as amenities 
-                FROM Hotels WHERE destination_id = ?
-                """
-            else:
-                query = """
-                SELECT name, address, star_rating, price_range, amenities 
-                FROM Hotels WHERE destination_id = ?
-                """
-                
-            cursor.execute(query, (destination_id,))
-            
-            results = []
-            for row in cursor.fetchall():
-                results.append({
-                    'name': row[0],
-                    'address': row[1],
-                    'star_rating': row[2],
-                    'price_range': row[3],
-                    'amenities': row[4]
-                })
-            return results
-            
-        except Exception as e:
-            print(f"Lỗi lấy khách sạn: {e}")
-            return []
-        finally:
-            conn.close()
+    def search_cuisine(self, keyword: str, language: str = 'vi') -> List[Dict[str, Any]]:
+        """Tìm kiếm ẩm thực"""
+        if language == 'vi':
+            query = """
+            SELECT * FROM Cuisine 
+            WHERE dish_name_vi LIKE ? OR description_vi LIKE ? OR ingredients_vi LIKE ? 
+            OR type LIKE ? OR origin_location LIKE ?
+            """
+        else:
+            query = """
+            SELECT * FROM Cuisine 
+            WHERE dish_name_en LIKE ? OR description_en LIKE ? OR ingredients_en LIKE ? 
+            OR type LIKE ? OR origin_location LIKE ?
+            """
+        
+        search_term = f"%{keyword}%"
+        return self.execute_query(query, (search_term, search_term, search_term, search_term, search_term))
     
-    def get_destination_details(self, destination_id, language="vi"):
-        """Lấy thông tin chi tiết về điểm đến"""
-        destination = self.get_destination_by_id(destination_id, language)
-        if not destination:
-            return None
-            
-        return {
-            'destination': destination,
-            'attractions': self.get_attractions(destination_id, language),
-            'restaurants': self.get_restaurants(destination_id, language),
-            'hotels': self.get_hotels(destination_id, language)
-        }
+    def search_activities(self, keyword: str, language: str = 'vi') -> List[Dict[str, Any]]:
+        """Tìm kiếm hoạt động"""
+        if language == 'vi':
+            query = """
+            SELECT a.*, d.name_vi as destination_name_vi, d.name_en as destination_name_en, d.location
+            FROM Activities a
+            LEFT JOIN Destinations d ON a.destination_id = d.id
+            WHERE a.activity_name_vi LIKE ? OR a.description_vi LIKE ? OR a.type LIKE ? 
+            OR a.difficulty_level LIKE ? OR d.name_vi LIKE ? OR d.location LIKE ?
+            """
+        else:
+            query = """
+            SELECT a.*, d.name_vi as destination_name_vi, d.name_en as destination_name_en, d.location
+            FROM Activities a
+            LEFT JOIN Destinations d ON a.destination_id = d.id
+            WHERE a.activity_name_en LIKE ? OR a.description_en LIKE ? OR a.type LIKE ? 
+            OR a.difficulty_level LIKE ? OR d.name_en LIKE ? OR d.location LIKE ?
+            """
+        
+        search_term = f"%{keyword}%"
+        return self.execute_query(query, (search_term, search_term, search_term, search_term, search_term, search_term))
     
-    def search_by_name(self, name, language="vi"):
-        """Tìm kiếm điểm đến gần đúng, không phân biệt hoa/thường"""
-        conn = self.get_connection()
-        if not conn:
-            return None
+    def search_hotels(self, destination, language):
+        if language == "vi":
+            query = """
+                SELECT id, name_vi AS name, location, description_vi AS description, 
+                    category, star_rating, price_range, amenities
+                FROM Hotels
+                WHERE location LIKE N'%' + ? + '%'
+            """
+        else:
+            query = """
+                SELECT id, name_en AS name, location, description_en AS description, 
+                    category, star_rating, price_range, amenities
+                FROM Hotels
+                WHERE location LIKE '%' + ? + '%'
+            """
+        return self.execute_query(query, (destination,))
+    
+    def search_restaurants(self, destination, language):
+        if language == "vi":
+            query = """
+                SELECT id, name_vi AS name, location, description_vi AS description, 
+                    cuisine_type, price_range, rating, opening_hours
+                FROM Restaurants
+                WHERE location LIKE N'%' + ? + '%'
+            """
+        else:
+            query = """
+                SELECT id, name_en AS name, location, description_en AS description, 
+                    cuisine_type, price_range, rating, opening_hours
+                FROM Restaurants
+                WHERE location LIKE '%' + ? + '%'
+            """
+        return self.execute_query(query, (destination,))
 
-        try:
-            cursor = conn.cursor()
-            if language == 'en':
-                query = "SELECT id FROM Destinations WHERE LOWER(name_en) LIKE LOWER(?)"
-            else:
-                query = "SELECT id FROM Destinations WHERE LOWER(name) LIKE LOWER(?)"
+    def search_transportation(self, origin: str, destination_keyword: str, language: str = 'vi') -> List[Dict[str, Any]]:
+        """Tìm phương tiện di chuyển từ origin đến destination"""
+        if language == 'vi':
+            query = """
+            SELECT t.*, d.name_vi as destination_name, d.location
+            FROM Transportation t
+            JOIN Destinations d ON t.destination_id = d.id
+            WHERE t.origin LIKE ? AND d.name_vi LIKE ?
+            """
+        else:
+            query = """
+            SELECT t.*, d.name_en as destination_name, d.location
+            FROM Transportation t
+            JOIN Destinations d ON t.destination_id = d.id
+            WHERE t.origin LIKE ? AND d.name_en LIKE ?
+            """
+        
+        return self.execute_query(query, (f"%{origin}%", f"%{destination_keyword}%"))
 
-            cursor.execute(query, (f"%{name}%",))
-            row = cursor.fetchone()
-
-            if row:
-                return row[0]  # Trả về id của điểm đến
-            return None
-        except Exception as e:
-            print(f"Lỗi tìm kiếm theo tên: {e}")
-            return None
-        finally:
-            conn.close()
-
-    def get_all_destinations(self, language="vi"):
+    def get_all_destinations(self) -> List[Dict[str, Any]]:
         """Lấy tất cả điểm đến"""
-        conn = self.get_connection()
-        if not conn:
-            return []
-            
-        try:
-            cursor = conn.cursor()
-            if language == 'en':
-                query = "SELECT id, name_en as name, description_en as description, region FROM Destinations"
-            else:
-                query = "SELECT id, name, description, region FROM Destinations"
-                
-            cursor.execute(query)
-            
-            results = []
-            for row in cursor.fetchall():
-                results.append({
-                    'id': row[0],
-                    'name': row[1],
-                    'description': row[2],
-                    'region': row[3]
-                })
-            return results
-            
-        except Exception as e:
-            print(f"Lỗi lấy dữ liệu: {e}")
-            return []
-        finally:
-            conn.close()
+        query = "SELECT * FROM Destinations ORDER BY rating DESC"
+        return self.execute_query(query)
     
-    def get_destination_by_id(self, dest_id, language="vi"):
-        """Lấy thông tin điểm đến theo ID"""
-        conn = self.get_connection()
-        if not conn:
-            return None
-            
-        try:
-            cursor = conn.cursor()
-            if language == 'en':
-                query = "SELECT id, name_en as name, description_en as description, region FROM Destinations WHERE id = ?"
-            else:
-                query = "SELECT id, name, description, region FROM Destinations WHERE id = ?"
-                
-            cursor.execute(query, (dest_id,))
-            row = cursor.fetchone()
-            
-            if row:
-                return {
-                    'id': row[0],
-                    'name': row[1],
-                    'description': row[2],
-                    'region': row[3]
-                }
-            return None
-            
-        except Exception as e:
-            print(f"Lỗi lấy thông tin điểm đến: {e}")
-            return None
-        finally:
-            conn.close()
-    
-    def get_attractions(self, destination_id, language="vi"):
-        """Lấy danh sách điểm tham quan"""
-        conn = self.get_connection()
-        if not conn:
-            return []
-            
-        try:
-            cursor = conn.cursor()
-            if language == 'en':
-                query = """
-                SELECT name_en as name, address, description_en as description, 
-                       ticket_price, opening_hours 
-                FROM Attractions WHERE destination_id = ?
-                """
-            else:
-                query = """
-                SELECT name, address, description, ticket_price, opening_hours 
-                FROM Attractions WHERE destination_id = ?
-                """
-                
-            cursor.execute(query, (destination_id,))
-            
-            results = []
-            for row in cursor.fetchall():
-                results.append({
-                    'name': row[0],
-                    'address': row[1],
-                    'description': row[2],
-                    'ticket_price': row[3],
-                    'opening_hours': row[4]
-                })
-            return results
-            
-        except Exception as e:
-            print(f"Lỗi lấy điểm tham quan: {e}")
-            return []
-        finally:
-            conn.close()
+    def get_destination_activities(self, destination_id: int) -> List[Dict[str, Any]]:
+        """Lấy hoạt động theo điểm đến"""
+        query = """
+        SELECT a.*, d.name_vi as destination_name_vi, d.name_en as destination_name_en
+        FROM Activities a
+        JOIN Destinations d ON a.destination_id = d.id
+        WHERE a.destination_id = ?
+        """
+        return self.execute_query(query, (destination_id,))
 
-    def estimate_trip_cost(self, destination_id, days=2, people=2, language="vi"):
-        conn = self.get_connection()
-        if not conn:
-            return {}
 
-        try:
-            cursor = conn.cursor()
+import datetime
 
-            # 🚗 Phương tiện: liệt kê tất cả
-            cursor.execute("SELECT name, price_range FROM Transportation WHERE destination_id = ?", (destination_id,))
-            transports = []
-            for name, price_range in cursor.fetchall():
-                min_p, max_p = _parse_price_range(price_range)
-                transports.append({"name": name, "range": (min_p, max_p)})
-
-            # 🏨 Khách sạn: lấy 2 cái
-            cursor.execute("SELECT name, price_range FROM Hotels WHERE destination_id = ?", (destination_id,))
-            hotel_rows = cursor.fetchall()
-            hotels = []
-            if hotel_rows:
-                chosen = random.sample(hotel_rows, min(2, len(hotel_rows)))
-                for name, price_range in chosen:
-                    min_p, max_p = _parse_price_range(price_range)
-                    hotels.append({"name": name, "range": (min_p, max_p)})
-            if hotels:
-                avg_min = sum(h["range"][0] for h in hotels) / len(hotels)
-                avg_max = sum(h["range"][1] for h in hotels) / len(hotels)
-                hotel_cost = (int(round(avg_min * days)), int(round(avg_max * days)))
-            else:
-                hotel_cost = (0, 0)
-
-            # 🍽️ Ăn uống: chỉ lấy 3 quán
-            cursor.execute("SELECT name, price_range FROM Restaurants WHERE destination_id = ?", (destination_id,))
-            restaurant_rows = cursor.fetchall()
-            restaurants = []
-            if restaurant_rows:
-                chosen = random.sample(restaurant_rows, min(3, len(restaurant_rows)))
-                for name, price_range in chosen:
-                    min_p, max_p = _parse_price_range(price_range)
-                    restaurants.append({"name": name, "range": (min_p, max_p)})
-            if restaurants:
-                avg_min = sum(r["range"][0] for r in restaurants) / len(restaurants)
-                avg_max = sum(r["range"][1] for r in restaurants) / len(restaurants)
-                food_cost = (int(round(avg_min * days * people * 2)),
-                            int(round(avg_max * days * people * 2)))
-            else:
-                food_cost = (0, 0)
-
-            # 🎡 Tham quan: chọn 3–4 điểm
-            cursor.execute("SELECT name, ticket_price FROM Attractions WHERE destination_id = ?", (destination_id,))
-            attraction_rows = cursor.fetchall()
-            attractions = []
-            att_min = att_max = 0
-            if attraction_rows:
-                num = min(len(attraction_rows), max(3, min(4, days*2)))
-                chosen = random.sample(attraction_rows, num)
-                for name, ticket in chosen:
-                    min_p, max_p = _parse_price_range(ticket)
-                    attractions.append({"name": name, "range": (min_p, max_p)})
-                    att_min += min_p
-                    att_max += max_p
-
-            # 💰 Chi phí phát sinh
-            extra = (500000, 1000000)
-
-            # Tổng
-            tr_min = sum(t["range"][0] for t in transports) * people
-            tr_max = sum(t["range"][1] for t in transports) * people
-            total_min = tr_min + hotel_cost[0] + food_cost[0] + att_min + extra[0]
-            total_max = tr_max + hotel_cost[1] + food_cost[1] + att_max + extra[1]
-
-            return {
-                "transports": transports,
-                "hotels": hotels,
-                "restaurants": restaurants,
-                "attractions": attractions,
-                "hotel_cost": hotel_cost,
-                "food_cost": food_cost,
-                "attraction_cost": (att_min, att_max),
-                "extra": extra,
-                "total": (total_min, total_max)
-            }
-
-        except Exception as e:
-            print(f"Lỗi tính chi phí: {e}")
-            return {}
-        finally:
-            conn.close()
-
-# Hàm chuyển giá text → số
-def parse_price(price_str):
-    if not price_str:
-        return 0
-    price_str = price_str.lower().replace("vnđ", "").replace(",", "").strip()
-    if "miễn phí" in price_str:
-        return 0
-
-    nums = re.findall(r'\d+', price_str)
-    if not nums:
-        return 0
-    nums = [int(n) for n in nums]
-
-    if len(nums) == 1:
-        value = nums[0]
-    elif len(nums) >= 2:
-        # Lấy trung bình khoảng giá
-        value = (nums[0] + nums[1]) / 2
-    else:
-        value = 0
-
-    # Làm tròn xuống số chẵn gần nhất
-    if value % 2 != 0:
-        value = value - 1
-
-    return int(value)
-
-# Hàm chuyển khoảng giá text → (min, max)
-def _parse_price_range(price_str):
-    """Trả về (min_price, max_price) từ chuỗi giá"""
-    if not price_str:
-        return (0, 0)
-    s = price_str.lower().replace("vnđ", "").replace(",", "").strip()
-    if "miễn phí" in s:
-        return (0, 0)
-    nums = re.findall(r'\d+', s)
-    if not nums:
-        return (0, 0)
-    nums = [int(n) for n in nums]
-    if len(nums) == 1:
-        return (nums[0], nums[0])
-    return (nums[0], nums[1])  # giữ nguyên khoảng
-
-def format_price(min_p, max_p):
-    if min_p == max_p:
-        if min_p == 0:
-            return "Miễn phí"
-        return f"{min_p:,} VNĐ"
-    return f"{min_p:,} - {max_p:,} VNĐ"
+def json_serial(obj):
+    """Convert datetime objects to ISO 8601 string"""
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")

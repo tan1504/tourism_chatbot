@@ -4,41 +4,97 @@ A rule-based mini chatbot for tourism assistance, providing users with help in t
 
 ## ✨ Features
 
-- **Bilingual Support**: Vietnamese & English with auto-detection
-- **Rule-based NLP**: Pattern matching for natural conversations  
-- **Database Integration**: SQL Server with tourism data
-- **Web Interface**: Modern responsive chat UI
-- **REST API**: JSON-based endpoints
+- 🌐 Hỗ trợ song ngữ Việt - Anh (tự động nhận diện ngôn ngữ)
+- 🤖 Tích hợp Google Gemini AI để tạo câu trả lời tự nhiên
+- 🗄️ Kết nối SQL Server để lưu trữ và truy xuất dữ liệu
+- 🔍 Tìm kiếm thông minh theo 4 chủ đề:
+  - Điểm đến du lịch (Destinations)
+  - Văn hóa truyền thống (Culture)
+  - Ẩm thực đặc sản (Cuisine)
+  - Hoạt động trải nghiệm (Activities)
+- 💬 Giao diện web đơn giản, thân thiện
+- ⚡ Phản hồi nhanh với gợi ý câu hỏi
 
-## 🚀 Quick Start
+## 🛠️ Công nghệ sử dụng
 
-1. **Install dependencies**
+- **Backend**: Python, Flask
+- **AI**: Google Gemini API
+- **Database**: SQL Server
+- **Frontend**: HTML, CSS, JavaScript
+- **Libraries**: pyodbc, google-generativeai, python-dotenv
+
+## 📋 Yêu cầu hệ thống
+
+- Python 3.8+
+- SQL Server (Express hoặc phiên bản cao hơn)
+- ODBC Driver 17 for SQL Server
+- Google Gemini API Key (miễn phí)
+
+## 🚀 Cài đặt
+
+### 1. Clone repository
+
 ```bash
-pip install flask flask-cors pyodbc
+git clone <repository-url>
+cd tourism-chatbot
 ```
 
-2. **Setup SQL Server**
-   - Run `TourismDB.sql` to create database
-   - Update connection string in `database.py`
+### 2. Tạo virtual environment
 
-3. **Run application**
+```bash
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Mac/Linux
+source venv/bin/activate
+```
+
+### 3. Cài đặt dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Thiết lập SQL Server
+
+- Cài đặt SQL Server
+- Mở SQL Server Management Studio (SSMS)
+- Chạy script `database_setup.sql` để tạo database và tables
+- Script sẽ tự động tạo dữ liệu mẫu
+
+### 5. Cấu hình môi trường
+
+Tạo file `.env` trong thư mục gốc:
+
+```env
+# Database Configuration
+DB_SERVER=localhost
+DB_NAME=TourismChatbot
+DB_USERNAME=
+DB_PASSWORD=
+DB_TRUSTED_CONNECTION=true
+
+# Gemini API Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+**Lấy Gemini API Key:**
+1. Truy cập: https://makersuite.google.com/app/apikey
+2. Đăng nhập Google
+3. Tạo API key mới
+4. Copy và paste vào file `.env`
+
+### 6. Chạy ứng dụng
+
 ```bash
 python app.py
 ```
 
-4. **Open browser**: `http://localhost:5000`
+Truy cập: `http://localhost:5000`
 
-## 💬 Usage Examples
-
-```
-User: "I want to visit Ha Long"
-Bot: Shows Ha Long Bay info with attractions, restaurants, hotels, transportation.
-
-User: "Nhà hàng ở Đà Lạt"  
-Bot: Lists recommended restaurants in Da Lat with details
-```
-
-## 🗂️ Project Structure
+## 📁 Cấu trúc dự án
 
 ```
 tourism_chatbot/
@@ -55,27 +111,69 @@ tourism_chatbot/
         └── script.js   # JavaScript for chat interactions
 ```
 
-## 🔌 API Endpoints
+## 🎯 Cách sử dụng
 
-- `POST /api/chat` - Send message to chatbot
-- `GET /api/destinations` - List all destinations
-- `GET /api/destination/{id}` - Get destination details
-- `GET /api/search?q=keyword` - Search destinations
+### Ví dụ câu hỏi:
 
-## 🛠️ Tech Stack
+**Về điểm đến:**
+- "Hãy giới thiệu về Vịnh Hạ Long"
+- "Điểm du lịch nổi tiếng ở Việt Nam"
+- "Nên đi Sapa vào thời gian nào?"
 
-- **Backend**: Python Flask
-- **Database**: SQL Server
-- **Frontend**: HTML/CSS/JavaScript
-- **NLP**: Rule-based pattern matching
+**Về văn hóa:**
+- "Tết Nguyên Đán có gì đặc biệt?"
+- "Múa rối nước là gì?"
+- "Lễ hội truyền thống Việt Nam"
 
-## 📊 Database
+**Về ẩm thực:**
+- "Phở có những loại nào?"
+- "Món ăn đặc sản miền Bắc"
+- "Bánh mì Việt Nam giá bao nhiêu?"
 
-10+ destinations (Ha Long, Da Lat, Vung Tau, Phu Quoc, Sapa,...) with 50+ attractions, 50+ restaurants, 50+ hotels.
+**Về hoạt động:**
+- "Có những hoạt động gì ở Hạ Long?"
+- "Trekking ở Sapa như thế nào?"
+- "Hoạt động thú vị ở Hội An"
 
-## 🤝 Contributing
+## 🔧 API Endpoints
 
-1. Fork the repository
-2. Create feature branch
-3. Make changes
-4. Submit pull request
+| Endpoint | Method | Mô tả |
+|----------|--------|-------|
+| `/` | GET | Trang chủ |
+| `/api/chat` | POST | Chat với bot |
+| `/api/destinations` | GET | Lấy danh sách điểm đến |
+| `/api/search/<topic>` | GET | Tìm kiếm theo chủ đề |
+| `/api/health` | GET | Kiểm tra trạng thái hệ thống |
+
+### Ví dụ request:
+
+```bash
+# Chat API
+curl -X POST http://localhost:5000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Giới thiệu về Vịnh Hạ Long"}'
+
+# Search API
+curl http://localhost:5000/api/search/destinations?q=sapa&lang=vi
+```
+
+## 🐛 Troubleshooting
+
+**Lỗi kết nối SQL Server:**
+```
+- Kiểm tra SQL Server đã chạy chưa
+- Xác nhận thông tin trong file .env
+- Kiểm tra ODBC Driver đã cài đặt chưa
+```
+
+**Lỗi Gemini API:**
+```
+- Kiểm tra API key trong file .env
+- Xác nhận đã kích hoạt Gemini API
+- Kiểm tra quota API (free tier có giới hạn)
+```
+
+**Lỗi import module:**
+```bash
+pip install --upgrade -r requirements.txt
+```
